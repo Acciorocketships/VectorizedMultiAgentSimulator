@@ -45,7 +45,11 @@ def run_heuristic(
         step += 1
         actions = [None] * len(obs)
         for i in range(len(obs)):
-            actions[i] = policy.compute_action(obs[i], u_range=env.agents[i].u_range)
+            if hasattr(policy, "centralised") and policy.centralised:
+                actions = policy.compute_action(torch.stack(obs, dim=1), u_range=env.agents[i].u_range)
+            else:
+                actions[i] = policy.compute_action(obs[i], u_range=env.agents[i].u_range)
+
         obs, rews, dones, info = env.step(actions)
         rewards = torch.stack(rews, dim=1)
         global_reward = rewards.mean(dim=1)
@@ -71,13 +75,13 @@ def run_heuristic(
 
 
 if __name__ == "__main__":
-    from vmas.scenarios.transport import HeuristicPolicy as TransportHeuristic
+    from vmas.scenarios.mo_flocking import HeuristicPolicy as Heuristic
 
     run_heuristic(
-        scenario_name="transport",
-        heuristic=TransportHeuristic,
+        scenario_name="mo_flocking",
+        heuristic=Heuristic,
         n_envs=300,
-        n_steps=200,
+        n_steps=1000,
         render=True,
         save_render=False,
     )
