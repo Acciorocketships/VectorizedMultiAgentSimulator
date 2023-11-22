@@ -22,6 +22,8 @@ class Scenario(BaseScenario):
         self.target_resample_p = kwargs.get("target_rewample_p", 0.02)
 
         self.collision_penalty = kwargs.get("collision_penalty", -1.)
+        self.scalarisation_min = kwargs.get("scalarisation_min", False)
+        self.scalarisation_weights = kwargs.get("scalarisation_weights", [1.] * 5)
 
         self.plot_grid = True
         self.min_collision_distance = 0.01
@@ -166,7 +168,16 @@ class Scenario(BaseScenario):
 
         self.agent_rewards[agent] = agent_rew
 
-        return agent_rew.sum(dim=-1)
+        return self.scalarisation(agent_rew)
+
+    def scalarisation(self, agent_rew):
+        if not isinstance(self.scalarisation_weights, torch.Tensor):
+            self.scalarisation_weights = torch.Tensor(self.scalarisation_weights)
+        weighted_obj = agent_rew * self.scalarisation_weights[None,:] / torch.norm(self.scalarisation_weights)
+        if self.scalarisation_min:
+            return torch.min(weighted_obj, dim=-1).values
+        else:
+            return torch.sum(weighted_obj, dim=-1)
 
     def observation(self, agent: Agent):
         return torch.cat(
@@ -199,7 +210,6 @@ class HeuristicPolicy(BaseHeuristicPolicy):
         c_a = 1. # alignment
         c_t = 3. # target
         c_o = 1. # obstacle
-        weight_cutoff = 2.
 
         # Initial calculations
         n_agents = observation.shape[1]
