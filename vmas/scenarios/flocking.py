@@ -74,7 +74,7 @@ class Scenario(BaseScenario):
             noise = torch.randn(vel.shape) / 50
 
             dist_func = lambda dist: torch.minimum(0.0001 / dist, torch.tensor(1.0))
-            repulsor = torch.zeros(vel.shape)
+            repulsor = torch.zeros(vel.shape, device=vel.device)
             left_wall_dist = torch.maximum(agent.state.pos[:,0] + self.x_dim, torch.tensor(0.01))
             right_wall_dist = torch.maximum(self.x_dim - agent.state.pos[:,0], torch.tensor(0.01))
             top_wall_dist = torch.maximum(self.y_dim - agent.state.pos[:,1], torch.tensor(0.01))
