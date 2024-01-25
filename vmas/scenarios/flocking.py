@@ -71,7 +71,7 @@ class Scenario(BaseScenario):
     def action_script_creator(self):
         def action_script(agent, world):
             vel = agent.state.last_action
-            noise = torch.randn(vel.shape) / 50
+            noise = torch.randn(vel.shape, device=self.world.device) / 50
 
             dist_func = lambda dist: torch.minimum(0.0001 / dist, torch.tensor(1.0, device=self.world.device))
             repulsor = torch.zeros(vel.shape, device=self.world.device)
