@@ -17,14 +17,13 @@ class Scenario(BaseScenario):
     def make_world(self, batch_dim: int, device: torch.device, **kwargs):
         n_agents = kwargs.get("n_agents", 4)
         n_obstacles = kwargs.get("n_obstacles", 5)
-        desired_distance = kwargs.get("desired_distance", 0.1)
         self._min_dist_between_entities = kwargs.get("min_dist_between_entities", 0.15)
 
         self.collision_reward = kwargs.get("collision_reward", -0.1)
         self.dist_shaping_factor = kwargs.get("dist_shaping_factor", 1)
 
         self.plot_grid = True
-        self.desired_distance = desired_distance
+        self.desired_distance = 0.1
         self.min_collision_distance = 0.005
         self.x_dim = 1
         self.y_dim = 1
@@ -39,13 +38,22 @@ class Scenario(BaseScenario):
             render_action=True,
             action_script=self.action_script_creator(),
         )
-
         world.add_agent(self._target)
+        goal_entity_filter: Callable[[Entity], bool] = lambda e: not isinstance(
+            e, Agent
+        )
         for i in range(n_agents):
             agent = Agent(
                 name=f"agent_{i}",
                 collide=True,
-                sensors=[],
+                sensors=[
+                    Lidar(
+                        world,
+                        n_rays=12,
+                        max_range=0.2,
+                        entity_filter=goal_entity_filter,
+                    )
+                ],
                 render_action=True,
             )
             agent.collision_rew = torch.zeros(batch_dim, device=device)
@@ -60,7 +68,7 @@ class Scenario(BaseScenario):
                 name=f"obstacle_{i}",
                 collide=True,
                 movable=False,
-                shape=Sphere(radius=0.15),
+                shape=Sphere(radius=0.1),
                 color=Color.RED,
             )
             world.add_landmark(obstacle)
@@ -70,33 +78,12 @@ class Scenario(BaseScenario):
 
     def action_script_creator(self):
         def action_script(agent, world):
-            vel = agent.state.last_action
-            noise = torch.randn(vel.shape) / 50
-
-            dist_func = lambda dist: torch.minimum(0.0001 / dist, torch.tensor(1.0))
-            repulsor = torch.zeros(vel.shape)
-            left_wall_dist = torch.maximum(agent.state.pos[:,0] + self.x_dim, torch.tensor(0.01))
-            right_wall_dist = torch.maximum(self.x_dim - agent.state.pos[:,0], torch.tensor(0.01))
-            top_wall_dist = torch.maximum(self.y_dim - agent.state.pos[:,1], torch.tensor(0.01))
-            bottom_wall_dist = torch.maximum(agent.state.pos[:, 1] + self.y_dim, torch.tensor(0.01))
-            repulsor += dist_func(left_wall_dist)[:,None] * torch.tensor([[1, 0]]).expand(self.world.batch_dim, -1) + \
-                        dist_func(right_wall_dist)[:,None] * torch.tensor([[-1, 0]]).expand(self.world.batch_dim, -1) + \
-                        dist_func(top_wall_dist)[:,None] * torch.tensor([[0, -1]]).expand(self.world.batch_dim, -1) + \
-                        dist_func(bottom_wall_dist)[:,None] * torch.tensor([[0, 1]]).expand(self.world.batch_dim, -1)
-            for obstacle in self.obstacles:
-                o_dist = torch.norm(obstacle.state.pos - agent.state.pos, dim=-1)
-                o_vec = (agent.state.pos - obstacle.state.pos) / o_dist[:,None]
-                repulsor += dist_func(o_dist - obstacle.shape.radius - agent.shape.radius)[:,None] * o_vec
-
-            update = noise + repulsor
-            new_vel = torch.clamp(vel + update, -0.3, 0.3)
-            agent.action.u = new_vel
-            agent.state.last_action = new_vel
+            t = self.t / 30
+            agent.action.u = torch.stack([torch.cos(t), torch.sin(t)], dim=1)
 
         return action_script
 
     def reset_world_at(self, env_index: int = None):
-        self._target.state.last_action = torch.zeros(self._target.state.vel.shape)
         target_pos = torch.zeros(
             (1, self.world.dim_p)
             if env_index is not None
@@ -194,17 +181,15 @@ class Scenario(BaseScenario):
         return agent.collision_rew + agent.dist_rew
 
     def observation(self, agent: Agent):
-        rel_agent_pos = torch.cat([
-            torch.cat([a.state.pos - agent.state.pos, a.state.vel - agent.state.vel], dim=-1)
-            for a in self.world.agents if (a != agent) and (a != self._target)
-        ], dim=-1)
-        rel_obs_pos = torch.cat([
-            torch.cat([a.state.pos - agent.state.pos, a.state.vel - agent.state.vel], dim=-1)
-            for a in self.obstacles
-        ], dim=-1)
-        rel_target_pos = self._target.state.pos - agent.state.pos
-        rel_target_vel = self._target.state.vel - agent.state.vel
-        return torch.cat([rel_target_pos, rel_target_vel, rel_agent_pos, rel_obs_pos], dim=-1)
+        return torch.cat(
+            [
+                agent.state.pos,
+                agent.state.vel,
+                agent.state.pos - self._target.state.pos,
+                agent.sensors[0].measure(),
+            ],
+            dim=-1,
+        )
 
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         info = {
