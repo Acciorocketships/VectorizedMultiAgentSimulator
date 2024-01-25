@@ -79,10 +79,10 @@ class Scenario(BaseScenario):
             right_wall_dist = torch.maximum(self.x_dim - agent.state.pos[:,0], torch.tensor(0.01))
             top_wall_dist = torch.maximum(self.y_dim - agent.state.pos[:,1], torch.tensor(0.01))
             bottom_wall_dist = torch.maximum(agent.state.pos[:, 1] + self.y_dim, torch.tensor(0.01))
-            repulsor += dist_func(left_wall_dist)[:,None] * torch.tensor([[1, 0]]).expand(self.world.batch_dim, -1) + \
-                        dist_func(right_wall_dist)[:,None] * torch.tensor([[-1, 0]]).expand(self.world.batch_dim, -1) + \
-                        dist_func(top_wall_dist)[:,None] * torch.tensor([[0, -1]]).expand(self.world.batch_dim, -1) + \
-                        dist_func(bottom_wall_dist)[:,None] * torch.tensor([[0, 1]]).expand(self.world.batch_dim, -1)
+            repulsor += dist_func(left_wall_dist)[:,None] * torch.tensor([[1, 0]], device=vel.device).expand(self.world.batch_dim, -1) + \
+                        dist_func(right_wall_dist)[:,None] * torch.tensor([[-1, 0]], device=vel.device).expand(self.world.batch_dim, -1) + \
+                        dist_func(top_wall_dist)[:,None] * torch.tensor([[0, -1]], device=vel.device).expand(self.world.batch_dim, -1) + \
+                        dist_func(bottom_wall_dist)[:,None] * torch.tensor([[0, 1]], device=vel.device).expand(self.world.batch_dim, -1)
             for obstacle in self.obstacles:
                 o_dist = torch.norm(obstacle.state.pos - agent.state.pos, dim=-1)
                 o_vec = (agent.state.pos - obstacle.state.pos) / o_dist[:,None]
