@@ -73,16 +73,16 @@ class Scenario(BaseScenario):
             vel = agent.state.last_action
             noise = torch.randn(vel.shape) / 50
 
-            dist_func = lambda dist: torch.minimum(0.0001 / dist, torch.tensor(1.0))
-            repulsor = torch.zeros(vel.shape, device=vel.device)
+            dist_func = lambda dist: torch.minimum(0.0001 / dist, torch.tensor(1.0, device=self.world.device))
+            repulsor = torch.zeros(vel.shape, device=self.world.device)
             left_wall_dist = torch.maximum(agent.state.pos[:,0] + self.x_dim, torch.tensor(0.01))
             right_wall_dist = torch.maximum(self.x_dim - agent.state.pos[:,0], torch.tensor(0.01))
             top_wall_dist = torch.maximum(self.y_dim - agent.state.pos[:,1], torch.tensor(0.01))
             bottom_wall_dist = torch.maximum(agent.state.pos[:, 1] + self.y_dim, torch.tensor(0.01))
-            repulsor += dist_func(left_wall_dist)[:,None] * torch.tensor([[1, 0]], device=vel.device).expand(self.world.batch_dim, -1) + \
-                        dist_func(right_wall_dist)[:,None] * torch.tensor([[-1, 0]], device=vel.device).expand(self.world.batch_dim, -1) + \
-                        dist_func(top_wall_dist)[:,None] * torch.tensor([[0, -1]], device=vel.device).expand(self.world.batch_dim, -1) + \
-                        dist_func(bottom_wall_dist)[:,None] * torch.tensor([[0, 1]], device=vel.device).expand(self.world.batch_dim, -1)
+            repulsor += dist_func(left_wall_dist)[:,None] * torch.tensor([[1, 0]], device=self.world.device).expand(self.world.batch_dim, -1) + \
+                        dist_func(right_wall_dist)[:,None] * torch.tensor([[-1, 0]], device=self.world.device).expand(self.world.batch_dim, -1) + \
+                        dist_func(top_wall_dist)[:,None] * torch.tensor([[0, -1]], device=self.world.device).expand(self.world.batch_dim, -1) + \
+                        dist_func(bottom_wall_dist)[:,None] * torch.tensor([[0, 1]], device=self.world.device).expand(self.world.batch_dim, -1)
             for obstacle in self.obstacles:
                 o_dist = torch.norm(obstacle.state.pos - agent.state.pos, dim=-1)
                 o_vec = (agent.state.pos - obstacle.state.pos) / o_dist[:,None]
