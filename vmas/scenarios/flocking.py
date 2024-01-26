@@ -89,6 +89,7 @@ class Scenario(BaseScenario):
                 repulsor += dist_func(o_dist - obstacle.shape.radius - agent.shape.radius)[:,None] * o_vec
 
             update = noise + repulsor
+            print(vel.device)
             new_vel = torch.clamp(vel + update, -0.3, 0.3)
             agent.action.u = new_vel
             agent.state.last_action = new_vel
