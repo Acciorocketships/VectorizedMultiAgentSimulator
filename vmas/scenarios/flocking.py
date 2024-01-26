@@ -70,7 +70,7 @@ class Scenario(BaseScenario):
 
     def action_script_creator(self):
         def action_script(agent, world):
-            vel = agent.state.last_action
+            vel = agent.state.last_action.to(self.world.device)
             noise = torch.randn(vel.shape, device=self.world.device) / 50
 
             dist_func = lambda dist: torch.minimum(0.0001 / dist, torch.tensor(1.0, device=self.world.device))
@@ -89,7 +89,6 @@ class Scenario(BaseScenario):
                 repulsor += dist_func(o_dist - obstacle.shape.radius - agent.shape.radius)[:,None] * o_vec
 
             update = noise + repulsor
-            breakpoint()
             new_vel = torch.clamp(vel + update, -0.3, 0.3)
             agent.action.u = new_vel
             agent.state.last_action = new_vel
