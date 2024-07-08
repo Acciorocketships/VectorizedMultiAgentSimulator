@@ -1852,16 +1852,10 @@ class AgentPolicy:
         side_dot_prod = (ball_dir * net_dir).sum(dim=-1)
         dists -= 0.5 * side_dot_prod * self.decision_strength
         dists += 0.5 * torch.randn(dists.shape) * (1-self.decision_strength) ** 2
-        mindist_agents = torch.topk(dists[:,:len(self.teammates)], k=1, largest=False, sorted=True)
-        if self.decision_strength != 1:
-            mask = torch.rand(ball_pos.shape[0]) < self.decision_strength + 0.1
+        mindist_agents = torch.argmin(dists[:, : len(self.teammates)], dim=-1)
         for i, agent in enumerate(self.teammates):
-            if self.decision_strength == 1:
-                self.agent_possession[agent] = (mindist_agents.indices[:, 0] == i)
-                # self.agent_possession[agent] = (mindist_agents.indices[:, 0] == i) | \
-                #                                ((mindist_agents.indices[:,1] == i) & ~mindist_team)
-            else:
-                self.agent_possession[agent][mask] = (mindist_agents.indices[mask, 0] == i)
+            self.agent_possession[agent] = (mindist_agents == i)
+
 
     # mindist_agent = torch.argmin(dists[:, : len(self.teammates)], dim=-1)
             # if self.agent_possession[agent][0]:
@@ -2050,8 +2044,8 @@ if __name__ == "__main__":
         ai_blue_agents=True,
         ai_red_agents=True,
         dense_reward=True,
-        ai_speed_strength=(1., 0.5),
-        ai_decision_strength=0.9,
+        ai_speed_strength=1.,
+        ai_decision_strength=(1., 0.5),
         ai_precision_strength=1.,
         n_traj_points=0,
         ball_mass=0.25,

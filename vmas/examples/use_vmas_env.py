@@ -26,8 +26,8 @@ def _get_deterministic_action(agent: Agent, continuous: bool, env):
 def use_vmas_env(
     render: bool = False,
     save_render: bool = False,
-    num_envs: int = 32,
-    n_steps: int = 100,
+    num_envs: int = 500,
+    n_steps: int = 500,
     random_action: bool = False,
     device: str = "cpu",
     scenario_name: str = "waterfall",
@@ -116,7 +116,7 @@ def use_vmas_env(
 
 if __name__ == "__main__":
     use_vmas_env(
-        scenario_name="waterfall",
+        scenario_name="football",
         render=True,
         save_render=False,
         random_action=False,
