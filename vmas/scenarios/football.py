@@ -1313,20 +1313,6 @@ class Scenario(BaseScenario):
                 line.set_color(*color, alpha=agent._alpha)
                 geoms.append(line)
 
-        # if self.ai_red_agents and self.show_value:
-        #     from vmas.simulator.rendering import render_function_util
-        #     def func(pos):
-        #         vals = self.red_controller.get_pos_value(torch.tensor(pos), agent=self.world.red_agents[0], env_index=[0])
-        #         return vals
-        #     eps = 0.01
-        #     geoms.append(
-        #         render_function_util(
-        #             f=func,
-        #             plot_range=(self.pitch_length/2-eps, self.pitch_width/2-eps),
-        #             cmap_alpha=0.5,
-        #             cmap_range=[0, 1]
-        #         )
-        #     )
         return geoms
 
     def _get_background_geoms(self, objects):
@@ -1696,18 +1682,19 @@ class AgentPolicy:
             .norm(dim=-1)
             .unsqueeze(-1)
         )
-        pos += (
-            torch.randn(pos.shape, device=pos.device)
-            * 10
-            * (1 - self.precision_strength)
-            * (1 - torch.exp(-diff))
-        )
-        vel += (
-            torch.randn(pos.shape, device=vel.device)
-            * 10
-            * (1 - self.precision_strength)
-            * (1 - torch.exp(-diff))
-        )
+        if self.precision_strength != 1:
+            pos += (
+                torch.randn(pos.shape, device=pos.device)
+                * 10
+                * (1 - self.precision_strength)
+                * (1 - torch.exp(-diff))
+            )
+            vel += (
+                torch.randn(pos.shape, device=vel.device)
+                * 10
+                * (1 - self.precision_strength)
+                * (1 - torch.exp(-diff))
+            )
         self.objectives[agent]["target_pos_rel"][env_index] = (
             pos - self.ball.state.pos[env_index]
         )
@@ -1894,7 +1881,8 @@ class AgentPolicy:
         net_dir = net_disps / net_disps.norm(dim=-1, keepdim=True)
         side_dot_prod = (ball_dir * net_dir).sum(dim=-1)
         dists -= 0.5 * side_dot_prod * self.decision_strength
-        dists += 0.5 * torch.randn(dists.shape) * (1-self.decision_strength) ** 2
+        if self.decision_strength != 1:
+            dists += 0.5 * torch.randn(dists.shape) * (1-self.decision_strength) ** 2
         mindist_agents = torch.argmin(dists[:, : len(self.teammates)], dim=-1)
         for i, agent in enumerate(self.teammates):
             self.agent_possession[agent] = (mindist_agents == i)
@@ -1975,9 +1963,10 @@ class AgentPolicy:
         value = (
             wall_value + other_agent_value + ball_dist_value + side_value + defend_value
         ) / 5
-        value += torch.randn(value.shape, device=value.device) * (
-            1 - self.decision_strength
-        )
+        if self.decision_strength != 1:
+            value += torch.randn(value.shape, device=value.device) * (
+                1 - self.decision_strength
+            )
         return value
 
     def get_wall_separations(self, pos):
@@ -2084,13 +2073,13 @@ if __name__ == "__main__":
     render_interactively(
         __file__,
         control_two_agents=False,
-        n_blue_agents=2,
+        n_blue_agents=3,
         n_red_agents=3,
-        ai_blue_agents=False,
+        ai_blue_agents=True,
         ai_red_agents=True,
         dense_reward=True,
         ai_strength=0.5,
-        ai_decision_strength=(1.0, 1),
+        ai_decision_strength=(1.0, 0.5),
         ai_precision_strength=(1.0, 1),
         enable_shooting=False,
     )
