@@ -1446,7 +1446,7 @@ class AgentPolicy:
         self.team_name = team
         self.otherteam_name = "Blue" if (self.team_name == "Red") else "Red"
 
-        self.speed_strength = speed_strength # affects the speed of the agents
+        self.speed_strength = speed_strength ** 2 # affects the speed of the agents
         self.decision_strength = decision_strength # affects off-the-ball movement
         self.precision_strength = precision_strength # affects the ability to execute planned manoeuvres
 
@@ -1456,7 +1456,7 @@ class AgentPolicy:
         self.vel_lookahead = 0.01
         self.possession_lookahead = 0.5
 
-        self.dribble_speed = 0.35
+        self.dribble_speed = 0.16 + 0.16 * speed_strength
 
         self.shooting_radius = 0.08
         self.shooting_angle = torch.pi / 2
@@ -2050,8 +2050,8 @@ if __name__ == "__main__":
         ai_blue_agents=True,
         ai_red_agents=True,
         dense_reward=True,
-        ai_speed_strength=1.,
-        ai_decision_strength=(1., 0.5),
+        ai_speed_strength=(1., 0.5),
+        ai_decision_strength=0.9,
         ai_precision_strength=1.,
         n_traj_points=0,
         ball_mass=0.25,
