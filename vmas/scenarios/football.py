@@ -40,7 +40,7 @@ class Scenario(BaseScenario):
             batch_dim, device=device, dtype=torch.float32
         )
         self._sparse_reward_red = self._sparse_reward_blue.clone()
-        self._render_field = True
+        self._render_field = kwargs.get("render_field", True)
 
         self._reset_agent_range = torch.tensor(
             [self.pitch_length / 2, self.pitch_width],
