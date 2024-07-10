@@ -40,7 +40,6 @@ class Scenario(BaseScenario):
             batch_dim, device=device, dtype=torch.float32
         )
         self._sparse_reward_red = self._sparse_reward_blue.clone()
-        self._render_field = kwargs.get("render_field", True)
 
         self._reset_agent_range = torch.tensor(
             [self.pitch_length / 2, self.pitch_width],
@@ -70,6 +69,7 @@ class Scenario(BaseScenario):
     def init_params(self, **kwargs):
         # Scenario config
         self.viewer_size = kwargs.pop("viewer_size", (1200, 800))
+        self._render_field = kwargs.pop("render_field", True)
 
         # Agents config
         self.n_blue_agents = kwargs.pop("n_blue_agents", 3)
